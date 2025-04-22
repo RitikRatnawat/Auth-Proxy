@@ -1,0 +1,16 @@
+apiversion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: proxy-deployment
+  labels:
+    app: proxy-deployment
+spec:
+  to:
+    kind: Service
+    name: proxy-deployment
+  port:
+    targetPort: proxy
+  wildcardPolicy: None
+  tls:
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: Redirect

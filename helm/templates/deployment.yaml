@@ -1,0 +1,125 @@
+apiversion: apps/v1
+kind: Deployment
+metadata:
+  name: proxy-deployment
+  labels:
+    app: proxy-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: proxy-deployment
+  template:
+    metadata:
+      name: proxy-deployment
+      labels:
+        app: proxy-deployment
+spec:
+    terminationGracePeriodSeconds: 75 
+    volumes:
+      - name: secret-proxy-deployment-tls 
+        secret:
+            defaultMode: 420
+            secretName: proxy-deployment-tls
+      - name: vault-token
+        projected:
+          sources:
+            - serviceAccountToken:
+                path: vault-token
+                expirationSeconds: 7200
+                audience: vault
+    containers:
+      - name: app-deployment
+        image: ritikratnawat786/jupyter:1.0.0
+        imagePullPolicy: Always
+        volumeMounts:
+          - name: vault-token
+            mountPath: /var/run/secrets/vault/tokens
+        ports:
+          - name: application
+            containerPort: 8080
+            protocol: TCP
+        resources: 
+          limits:
+            cpu: 1500m
+            memory: 8Gi
+          requests:
+            cpu: 500m
+            memory: 1Gi
+        livenessProbe:
+          failureThreshold: 10 
+          httpGet:
+            path: "/"
+            port: 8080
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 10 
+          httpGet:
+            path: "/"
+            port: 8080
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+
+      - name: proxy-deployment
+        image: docker-icg-prod-local.artifactrepository.citigroup.net/icg-isg-dimas-175021/jupyter-auth-proxy:74-c33cce9-main
+        imagePullPolicy: Always
+        volumeMounts:
+          - name: secret-dimas1-jupyter-deployment-tls
+            mountPath: /etc/tls/private
+          - name: vault-token
+            mountPath: /var/run/secrets/vault/tokens
+        ports:
+          - name: application-proxy
+            containerPort: 4180
+            protocol: 
+        env:
+          - name: OAUTH2_PROXY_CLIENT_ID
+            value: "CLIENT_ID"
+          - name: OAUTH2_PROXY_CLIENT_SECRET
+            value: "CLIENT_SECRET"
+          - name: OAUTH2_PROXY_COOKIE_SECRET
+            value: "COOKIE_SECRET"
+          - name: OAUTH2_PROXY_OIDC_ISSUER_URL
+            value: "OIDC ISSUER_URL"
+          - name: OAUTH2_PROXY_LOGIN_URL
+            value: "LOGIN_URL"
+          - name: OAUTH2_PROXY_REDEEM_URL
+            value: "REDEEM_URL"
+          - name: OAUTH2_PROXY_PROFILE_URL
+            value: "PROFILE_URL"
+          - name: OAUTH2_PROXY_OIDC_JWKS_URL
+            value: "OIDC JWKS URL"
+          - name: OAUTH2_PROXY_SCOPE
+            value: "SCOPE"
+          - name: OAUTH2_PROXY_UPSTREAMS
+            value: "UPSTREAMS"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        livenessProbe:
+          failureThreshold: 10 
+          httpGet:
+            path: "/ping"
+            port: 4180
+            scheme: HTTPS
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: "/ping"
+            port: 4180
+            scheme: HTTPS
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
