@@ -22,4 +22,4 @@ python -c "import secrets; print(secrets.token_hex(16))"
 dd if=/dev/urandom bs=16 count=1 2>/dev/null | base64 | tr-d -- '\n' | tr --'+/''-_' ; echo
 ```
 
-> Update all the required configuration either using the configuration file or Environment variables.
+> Update all the required configuration either using the configuration file or Environment variables in the Helm Charts.
